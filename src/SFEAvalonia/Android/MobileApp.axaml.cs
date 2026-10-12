@@ -1,11 +1,10 @@
-using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using SFExporter.Desktop;
 
 namespace SFExporter.AndroidApp;
 
-public sealed partial class MobileApp : Application
+public sealed partial class MobileApp : Avalonia.Application
 {
     internal static MobileView? CurrentView { get; private set; }
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
