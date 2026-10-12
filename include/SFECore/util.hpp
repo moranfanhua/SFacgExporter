@@ -1,6 +1,7 @@
 #pragma once
 #include "SFECore/json.hpp"
 #include <filesystem>
+#include <optional>
 #include <stdexcept>
 
 namespace sf {
@@ -13,6 +14,11 @@ struct Error : std::runtime_error {
 };
 std::wstring wide(const std::string &s);
 std::string narrow(const std::wstring &s);
+fs::path path_from_utf8(const std::string &s);
+std::string path_utf8(const fs::path &p);
+void secure_erase(void *data, size_t size);
+std::optional<int64_t> http_time(const std::string &date);
+std::string utc_timestamp();
 std::string trim(std::string s);
 std::string lower(std::string s);
 void replace_all(std::string &s, const std::string &a, const std::string &b);

@@ -1,32 +1,69 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <SFEPlatform Condition="'$(SFEPlatform)' == ''">Desktop</SFEPlatform>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Platforms>AnyCPU;x64</Platforms>
     <AssemblyName>菠萝包小说导出</AssemblyName>
-    <Version>0.9.4</Version>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.10.1</Version>
+    <ApplicationManifest Condition="'$(SFEPlatform)' != 'Android' And $([MSBuild]::IsOSPlatform('Windows'))">app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <SFECoreBinaryPath Condition="'$(SFECoreBinaryPath)' == '' and Exists('$(SolutionDir)CMakeCache.txt')">$(SolutionDir)bin/SFECore.dll</SFECoreBinaryPath>
-    <SFECoreBinaryPath Condition="'$(SFECoreBinaryPath)' == ''">$(MSBuildThisFileDirectory)../../build/bin/SFECore.dll</SFECoreBinaryPath>
+    <SFECoreLibraryName>SFECore.dll</SFECoreLibraryName>
+    <SFECoreLibraryName Condition="$([MSBuild]::IsOSPlatform('Linux')) Or $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('linux-'))">libSFECore.so</SFECoreLibraryName>
+    <SFECoreLibraryName Condition="$([MSBuild]::IsOSPlatform('OSX')) Or $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('osx-'))">libSFECore.dylib</SFECoreLibraryName>
+    <SFECoreBinaryPath Condition="'$(SFEPlatform)' != 'Android' And '$(SFECoreBinaryPath)' == '' And Exists('$(SolutionDir)CMakeCache.txt')">$(SolutionDir)bin/$(SFECoreLibraryName)</SFECoreBinaryPath>
+    <SFECoreBinaryPath Condition="'$(SFEPlatform)' != 'Android' And '$(SFECoreBinaryPath)' == ''">$(MSBuildThisFileDirectory)../../build/bin/$(SFECoreLibraryName)</SFECoreBinaryPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Platform)' == 'x64'">
+  <PropertyGroup Condition="'$(Platform)' == 'x64' And '$(SFEPlatform)' != 'Android'">
     <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(SFEPlatform)' == 'Android'">
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <ApplicationId>com.moranfanhua.sfexporter</ApplicationId>
+    <ApplicationTitle>菠萝包小说导出</ApplicationTitle>
+    <ApplicationVersion>1001</ApplicationVersion>
+    <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    <AndroidManifest>Android/Properties/AndroidManifest.xml</AndroidManifest>
+    <SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
+    <RuntimeIdentifier>android-arm64</RuntimeIdentifier>
+    <AndroidPackageFormats>apk</AndroidPackageFormats>
+    <PublishTrimmed>false</PublishTrimmed>
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+    <SFECoreLibraryName>libSFECore.so</SFECoreLibraryName>
+    <SFECoreBinaryPath Condition="'$(SFECoreBinaryPath)' == ''">$(MSBuildThisFileDirectory)../../build/android-arm64/bin/libSFECore.so</SFECoreBinaryPath>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.14" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.14" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.14" />
-    <Content Include="$(SFECoreBinaryPath)" Link="SFECore.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
-    <Content Include="../../resource/cipher-table.json" Link="resource/cipher-table.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
   </ItemGroup>
-  <ItemGroup Condition="'$(MSBuildRuntimeType)' == 'Full' and Exists('$(MSBuildThisFileDirectory)../../build/src/SFECore/SFECore.vcxproj')">
+  <ItemGroup Condition="'$(SFEPlatform)' != 'Android'">
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.14" />
+    <Compile Remove="Android/**/*.cs" />
+    <AvaloniaXaml Remove="Android/**/*.axaml" />
+    <Content Include="$(SFECoreBinaryPath)" Link="$(SFECoreLibraryName)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
+    <Content Include="../../resource/cipher-table.json" Link="resource/cipher-table.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
+    <Content Include="../../resource/cacert.pem" Link="resource/cacert.pem" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(SFEPlatform)' == 'Android'">
+    <PackageReference Include="Avalonia.Android" Version="11.3.14" />
+    <Compile Remove="App.axaml.cs;MainWindow.axaml.cs;Program.cs;SelfTest.cs;DesktopSessionProtector.cs" />
+    <AvaloniaXaml Remove="App.axaml;MainWindow.axaml" />
+    <AndroidResource Include="Android/Resources/**/*.xml" Link="Resources/%(RecursiveDir)%(Filename)%(Extension)" />
+    <AndroidNativeLibrary Include="$(SFECoreBinaryPath)" Abi="arm64-v8a" />
+    <AndroidAsset Include="../../resource/cipher-table.json" Link="resource/cipher-table.json" LogicalName="resource/cipher-table.json" />
+    <AndroidAsset Include="../../resource/cacert.pem" Link="resource/cacert.pem" LogicalName="resource/cacert.pem" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(SFEPlatform)' != 'Android' And '$(MSBuildRuntimeType)' == 'Full' And Exists('$(MSBuildThisFileDirectory)../../build/src/SFECore/SFECore.vcxproj')">
     <ProjectReference Include="../../build/src/SFECore/SFECore.vcxproj">
       <SetPlatform>Platform=x64</SetPlatform>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
     </ProjectReference>
   </ItemGroup>
+  <Target Name="CheckNativeCore" BeforeTargets="PrepareForBuild" Condition="'$(SFEPlatform)' == 'Android' And '$(DesignTimeBuild)' != 'true'">
+    <Error Condition="!Exists('$(SFECoreBinaryPath)')" Text="Build the native core first: cmake --preset android-arm64 and cmake --build --preset android-arm64-Release" />
+  </Target>
 </Project>

@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:SFExporter.Desktop" x:Class="SFExporter.Desktop.MainWindow"
         Width="1050" Height="900" MinWidth="900" MinHeight="760" Background="#F5F6FA"
-        Title="菠萝包小说导出 v0.9.4" WindowStartupLocation="CenterScreen">
+        Title="菠萝包小说导出 v0.10.1" WindowStartupLocation="CenterScreen">
   <Grid Margin="24" RowDefinitions="Auto,16,Auto,16,*,16,Auto,12,Auto,12,150">
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel><TextBlock Text="菠萝包小说导出" FontSize="26" FontWeight="SemiBold" />

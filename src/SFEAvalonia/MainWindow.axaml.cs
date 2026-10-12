@@ -70,7 +70,7 @@ public sealed partial class MainWindow : Window
         finally
         {
             LoginState.Text = engine.LoggedIn ? "App 已登录" : "未登录";
-            Title = "菠萝包小说导出 v0.9.4 · " + LoginState.Text;
+            Title = "菠萝包小说导出 v0.10.1 · " + LoginState.Text;
             busy = false; operation.Dispose(); operation = null;
             CatalogButton.IsEnabled = LoginButton.IsEnabled = LogoutButton.IsEnabled = CookieButton.IsEnabled = ExportButton.IsEnabled = Volumes.IsEnabled = BookIdInput.IsEnabled = FolderInput.IsEnabled = true;
             StopButton.IsEnabled = false;

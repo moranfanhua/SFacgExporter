@@ -1,0 +1,60 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:SFExporter.Desktop" x:Class="SFExporter.AndroidApp.MobileView" Background="#F5F6FA">
+  <ScrollViewer>
+    <StackPanel Margin="16,24" Spacing="14">
+      <TextBlock Text="菠萝包小说导出" FontSize="24" FontWeight="SemiBold" />
+      <TextBlock x:Name="LoginState" Text="未登录 · v0.10.1" Foreground="#727887" />
+      <Border Background="White" CornerRadius="12" Padding="16">
+        <StackPanel x:Name="LoginControls" Spacing="10">
+          <TextBox x:Name="AccountInput" Watermark="手机号 / 账号" />
+          <TextBox x:Name="PasswordInput" Watermark="密码" PasswordChar="●" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="登录" Click="Login" /><Button Content="退出" Click="Logout" />
+          </StackPanel>
+          <Expander Header="使用自己的 App 会话">
+            <StackPanel Spacing="8" Margin="0,10,0,0">
+              <TextBox x:Name="CookieInput" Watermark=".SFCommunity=…; session_APP=…" PasswordChar="●" />
+              <Button Content="验证并保存会话" Click="UseCookie" />
+            </StackPanel>
+          </Expander>
+        </StackPanel>
+      </Border>
+      <Border Background="White" CornerRadius="12" Padding="16">
+        <StackPanel x:Name="BookControls" Spacing="10">
+          <TextBox x:Name="BookIdInput" Watermark="输入数字小说 ID" />
+          <Button Content="读取目录" Click="ReadCatalog" />
+          <TextBlock x:Name="BookDescription" Text="读取目录后选择要导出的卷" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="全选" Click="SelectAll" /><Button Content="清空选择" Click="SelectNone" />
+          </StackPanel>
+          <ItemsControl x:Name="Volumes">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="local:VolumeItem">
+                <StackPanel Margin="0,6">
+                  <CheckBox Content="{Binding Name}" IsChecked="{Binding Selected, Mode=TwoWay}" />
+                  <TextBlock Text="{Binding Description}" Foreground="#727887" Margin="28,0,0,0" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+      <Border Background="White" CornerRadius="12" Padding="16">
+        <StackPanel x:Name="ExportControls" Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="20">
+            <CheckBox x:Name="TxtFormat" Content="TXT" IsChecked="True" />
+            <CheckBox x:Name="EpubFormat" Content="EPUB" IsChecked="True" />
+          </StackPanel>
+          <Button Content="选择保存目录" Click="ChooseFolder" />
+          <TextBlock x:Name="FolderDescription" Text="请选择一个保存目录" TextWrapping="Wrap" />
+          <Button Classes="primary" Content="导出所选卷" Click="Export" />
+        </StackPanel>
+      </Border>
+      <TextBlock x:Name="StatusText" Text="准备就绪" TextWrapping="Wrap" />
+      <ProgressBar x:Name="Progress" Minimum="0" Maximum="1" Value="0" Height="5" />
+      <Button x:Name="StopButton" Content="停止" IsEnabled="False" Click="StopClicked" />
+      <TextBlock Text="导出时请保持应用在前台。中断后可利用已取得的缓存继续。" TextWrapping="Wrap" Foreground="#727887" />
+      <TextBox x:Name="LogOutput" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

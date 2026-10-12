@@ -1,8 +1,4 @@
 #include "SFECore/ebook.hpp"
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
 #include <cstdio>
 #include <sstream>
 
@@ -223,11 +219,7 @@ void write_epub(const Json &book, const std::vector<SavedChapter> &chapters, con
     for (auto &asset : assets)
         manifest += "<item id=\"img" + std::to_string(a++) + "\" href=\"" + asset.name + "\" media-type=\"" +
                     asset.type + "\"" + (asset.name == cover ? " properties=\"cover-image\"" : "") + "/>";
-    SYSTEMTIME time;
-    GetSystemTime(&time);
-    char date[32];
-    snprintf(date, sizeof(date), "%04d-%02d-%02dT%02d:%02d:%02dZ", time.wYear, time.wMonth, time.wDay,
-             time.wHour, time.wMinute, time.wSecond);
+    auto date = utc_timestamp();
     std::string opf =
         "<?xml version=\"1.0\" encoding=\"utf-8\"?><package xmlns=\"http://www.idpf.org/2007/opf\" "
         "version=\"3.0\" unique-identifier=\"bookid\"><metadata "

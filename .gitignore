@@ -1,9 +1,12 @@
 build/
 src/SFEAvalonia/bin/
 src/SFEAvalonia/obj/
+build-tools/
+vcpkg_installed/
 artifacts/
 *.user
 *.suo
+*.SdkResolver.*.tmp
 logs/
 .sfcore-cache/
 test-artifacts/

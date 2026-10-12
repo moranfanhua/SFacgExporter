@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 4.2)
-project(SFExporter VERSION 0.9.4 LANGUAGES CXX)
+project(SFExporter VERSION 0.10.1 LANGUAGES CXX)
 
-if(NOT WIN32)
-  message(FATAL_ERROR "The current HTTP and encrypted-session backend targets Windows")
+if(NOT WIN32 AND NOT ANDROID AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  message(FATAL_ERROR "Supported targets: Windows, Linux, macOS and Android")
 endif()
-if(NOT MSVC)
+if(WIN32 AND NOT MSVC)
   message(FATAL_ERROR "Use the windows-x64 preset with the Visual Studio 2026 C++ toolset")
 endif()
 
@@ -20,4 +20,5 @@ if(CMAKE_GENERATOR MATCHES "^Visual Studio")
 endif()
 
 configure_file(resource/cipher-table.json bin/resource/cipher-table.json COPYONLY)
+configure_file(resource/cacert.pem bin/resource/cacert.pem COPYONLY)
 install(DIRECTORY resource DESTINATION .)

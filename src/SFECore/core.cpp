@@ -22,8 +22,11 @@ class Core {
     Codec codec;
     bool logged = false;
     Core(const Json &config, sf_event_callback cb = nullptr, void *u = nullptr)
-        : session_file(wide(config["sessionFile"].text())), cache_root(wide(config["cacheRoot"].text())),
-          table_path(wide(config["cipherTablePath"].text())), callback(cb), user(u), codec(table_path) {
+        : session_file(path_from_utf8(config["sessionFile"].text())),
+          cache_root(path_from_utf8(config["cacheRoot"].text())),
+          table_path(path_from_utf8(config["cipherTablePath"].text())), callback(cb), user(u),
+          codec(table_path) {
+        network.ca_bundle = config["caBundlePath"].text(path_utf8(table_path.parent_path() / "cacert.pem"));
         if (session_file.empty() || cache_root.empty())
             throw Error("核心配置缺少会话或缓存路径");
     }
@@ -171,14 +174,8 @@ class Core {
                     code = response.status;
                 if (code == 417) {
                     auto date = response.header("date");
-                    SYSTEMTIME st{};
-                    if (!date.empty() && WinHttpTimeToSystemTime(wide(date).c_str(), &st)) {
-                        FILETIME ft{};
-                        SystemTimeToFileTime(&st, &ft);
-                        ULARGE_INTEGER n;
-                        n.LowPart = ft.dwLowDateTime;
-                        n.HighPart = ft.dwHighDateTime;
-                        int64_t offset = int64_t(n.QuadPart / 10000 - 11644473600000ULL) - now();
+                    if (auto server_time = http_time(date)) {
+                        auto offset = *server_time - now();
                         if (std::abs(offset) > 2000)
                             clock_offset = offset;
                     }
@@ -222,7 +219,7 @@ class Core {
         try {
             auto plain = protected_data(read_file(session_file, 64 * 1024), true);
             saved = Json::parse(plain);
-            SecureZeroMemory(plain.data(), plain.size());
+            secure_erase(plain.data(), plain.size());
         } catch (const std::exception &) {
             throw Error("保存的登录会话无法读取，请重新登录");
         }
@@ -298,7 +295,7 @@ class Core {
             return m[1];
         throw Error("请输入数字小说 ID");
     }
-    fs::path book_dir(const std::string &id) { return cache_root / L".sfcore-cache" / wide(id); }
+    fs::path book_dir(const std::string &id) { return cache_root / ".sfcore-cache" / path_from_utf8(id); }
     Json cached_json(const fs::path &p) {
         try {
             if (fs::exists(p))
@@ -310,8 +307,8 @@ class Core {
     std::string cached(const std::string &id, int64_t chapter, bool raw) {
         auto p = book_dir(id);
         if (raw)
-            p /= L"raw";
-        auto j = cached_json(p / wide(std::to_string(chapter) + ".json"));
+            p /= "raw";
+        auto j = cached_json(p / path_from_utf8(std::to_string(chapter) + ".json"));
         if (j["BookId"].text() != id || j["Id"].number() != chapter ||
             j[raw ? "ProtocolVersion" : "DecoderVersion"].number() != 2)
             return {};
@@ -320,15 +317,15 @@ class Core {
     void save_chapter(const std::string &id, int64_t chapter, const std::string &content, bool raw) {
         auto p = book_dir(id);
         if (raw)
-            p /= L"raw";
-        save_json(p / wide(std::to_string(chapter) + ".json"),
+            p /= "raw";
+        save_json(p / path_from_utf8(std::to_string(chapter) + ".json"),
                   obj({{"BookId", id},
                        {"Id", chapter},
                        {raw ? "ProtocolVersion" : "DecoderVersion", 2},
                        {"Content", content}}));
     }
     Json catalog(const std::string &id, bool refresh) {
-        auto cached_book = cached_json(book_dir(id) / L"novel.json");
+        auto cached_book = cached_json(book_dir(id) / "novel.json");
         if (!refresh && cached_book["Id"].text() == id && !cached_book["Chapters"].items().empty()) {
             std::set<int64_t> ids;
             bool valid = true;
@@ -379,7 +376,7 @@ class Core {
                          {"Author", info["authorName"].text()},
                          {"Cover", info["expand"]["bigNovelCover"].text()},
                          {"Chapters", chapters}});
-        save_json(book_dir(id) / L"novel.json", book);
+        save_json(book_dir(id) / "novel.json", book);
         return book;
     }
     std::string raw_chapter(int64_t id) {
@@ -433,7 +430,7 @@ class Core {
     Json export_book(const Json &request) {
         auto id = book_id(request["id"].text());
         if (!request["cacheRoot"].text().empty())
-            cache_root = wide(request["cacheRoot"].text());
+            cache_root = path_from_utf8(request["cacheRoot"].text());
         auto book = catalog(id, false);
         if (!request["txt"].boolean() && !request["epub"].boolean())
             throw Error("至少选择 TXT 或 EPUB 一种格式");
@@ -501,26 +498,31 @@ class Core {
         if (saved.empty())
             throw Error("没有取得完整可解码的章节，未生成空电子书");
         auto name = safe_name(book["Title"].text());
-        fs::path out = request["outputFolder"].text().empty()
-                           ? cache_root / wide(name + "_" + std::to_string(now()) + "_" + guid().substr(0, 4))
-                           : fs::path(wide(request["outputFolder"].text()));
+        fs::path out =
+            request["outputFolder"].text().empty()
+                ? cache_root / path_from_utf8(name + "_" + std::to_string(now()) + "_" + guid().substr(0, 4))
+                : fs::path(path_from_utf8(request["outputFolder"].text()));
         auto suffix = failed ? "_不完整" : selected.size() < book["Chapters"].items().size() ? "_节选" : "";
-        auto stem = out / wide(name + suffix);
+        auto stem = out / path_from_utf8(name + suffix);
+        Json::array files;
         auto check = [&] { network.check(); };
         if (request["txt"].boolean()) {
             auto file = stem;
-            file += L".txt";
+            file += ".txt";
             write_txt(book, saved, file, check);
+            files.emplace_back(path_utf8(file));
         }
         if (request["epub"].boolean()) {
             emit("status", "正在打包 EPUB 和插图……");
             auto file = stem;
-            file += L".epub";
+            file += ".epub";
             write_epub(
                 book, saved, file, [&](auto url) { return web(url, true); },
                 [&](auto line) { emit("log", line); }, check);
+            files.emplace_back(path_utf8(file));
         }
-        return obj({{"folder", narrow(out.wstring())},
+        return obj({{"folder", path_utf8(out)},
+                    {"files", files},
                     {"exported", int(saved.size())},
                     {"requested", int(selected.size())},
                     {"failed", failed}});
@@ -546,7 +548,7 @@ class Core {
         }
         if (action == "catalog") {
             if (!r["cacheRoot"].text().empty())
-                cache_root = wide(r["cacheRoot"].text());
+                cache_root = path_from_utf8(r["cacheRoot"].text());
             return catalog(book_id(r["id"].text()), r["refresh"].boolean());
         }
         if (action == "export")
@@ -591,9 +593,8 @@ void Core::self_test(const std::string &root, const fs::path &table_path) {
                     "原创 & 😀\n\n[img=https://rss.sfacg.com/a.jpg]\n\n后文",
                 "HTML body only");
     auto config = [&](const std::string &session, const std::string &cache) {
-        return obj({{"sessionFile", session},
-                    {"cacheRoot", cache},
-                    {"cipherTablePath", narrow(table_path.wstring())}});
+        return obj(
+            {{"sessionFile", session}, {"cacheRoot", cache}, {"cipherTablePath", path_utf8(table_path)}});
     };
     Core c(config(root + "/missing/session.dat", root));
     c.logout();
@@ -624,7 +625,7 @@ void Core::self_test(const std::string &root, const fs::path &table_path) {
     };
     c.login("synthetic-account", "synthetic-password");
     assert_test(c.logged && c.has_session(), "first login creates encrypted session");
-    auto encrypted = read_file(wide(root + "/missing/session.dat"));
+    auto encrypted = read_file(path_from_utf8(root + "/missing/session.dat"));
     assert_test(encrypted.find("synthetic-session") == std::string::npos &&
                     encrypted.find("synthetic-password") == std::string::npos,
                 "session ciphertext");
@@ -695,10 +696,10 @@ void Core::self_test(const std::string &root, const fs::path &table_path) {
     std::vector<SavedChapter> chapters = {
         {info, "前文 & < >\n[img=700,875]https://rss.sfacg.com/body.gif[/img]\n后文😀"}};
     std::vector<std::string> urls;
-    auto out = fs::path(wide(root)) / L"image-books";
-    write_txt(book, chapters, out / L"images.txt", [] {});
+    auto out = fs::path(path_from_utf8(root)) / "image-books";
+    write_txt(book, chapters, out / "images.txt", [] {});
     write_epub(
-        book, chapters, out / L"images.epub",
+        book, chapters, out / "images.epub",
         [&](auto url) {
             urls.push_back(url);
             return bytes;
@@ -766,8 +767,8 @@ void Core::self_test(const std::string &root, const fs::path &table_path) {
     assert_test(downloaded["exported"].number() == 5 && downloaded["failed"].number() == 0 &&
                     api_chapters == 5 && public_chapters == 3,
                 "fresh catalog, web and VIP downloads produce five complete chapters");
-    assert_test(!fs::exists(fs::path(wide(root + "/fresh")) / L".chapter-cache") &&
-                    fs::exists(fs::path(wide(root + "/fresh")) / L".sfcore-cache"),
+    assert_test(!fs::exists(fs::path(path_from_utf8(root + "/fresh")) / ".chapter-cache") &&
+                    fs::exists(fs::path(path_from_utf8(root + "/fresh")) / ".sfcore-cache"),
                 "independent new cache");
 }
 } // namespace sf

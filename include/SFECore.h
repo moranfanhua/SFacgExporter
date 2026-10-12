@@ -1,13 +1,20 @@
 #pragma once
 #ifdef _WIN32
 #define SF_API __declspec(dllexport)
+#define SF_CALL __cdecl
 #else
-#define SF_API
+#define SF_API __attribute__((visibility("default")))
+#define SF_CALL
 #endif
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef void(__cdecl *sf_event_callback)(const char *json_utf8, void *user);
+typedef void(SF_CALL *sf_event_callback)(const char *json_utf8, void *user);
+typedef char *(SF_CALL *sf_host_callback)(const char *request_utf8);
+typedef void(SF_CALL *sf_host_free_callback)(char *response_utf8);
+SF_API void sf_set_host_callbacks(sf_host_callback call, sf_host_free_callback free_response);
+// Session protection uses host callbacks outside Windows; HTTP always runs in native libcurl.
+SF_API int sf_uses_host_callbacks(void);
 SF_API void *sf_create(const char *config_utf8, sf_event_callback callback, void *user);
 SF_API const char *sf_init_error(void);
 SF_API char *sf_call(void *core, const char *request_utf8);

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <style name="SFETheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <item name="android:windowLightStatusBar">true</item>
+    <item name="android:statusBarColor">#F5F6FA</item>
+    <item name="android:navigationBarColor">#F5F6FA</item>
+    <item name="android:windowActionModeOverlay">true</item>
+    <item name="android:colorAccent">#F07835</item>
+  </style>
+</resources>

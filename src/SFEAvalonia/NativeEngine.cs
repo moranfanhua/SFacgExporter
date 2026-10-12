@@ -5,16 +5,35 @@ namespace SFExporter.Desktop;
 public sealed record EngineEvent(string Type, string Text, int Done, int Total);
 public sealed class NativeEngine : IDisposable
 {
-    static NativeEngine() => NativeLibrary.SetDllImportResolver(typeof(NativeEngine).Assembly,
-        (name, _, _) => name == "SFECore" ? NativeLibrary.Load(Path.Combine(AppContext.BaseDirectory, "SFECore.dll")) : IntPtr.Zero);
+    static NativeEngine()
+    {
+        if (!OperatingSystem.IsAndroid())
+            NativeLibrary.SetDllImportResolver(typeof(NativeEngine).Assembly,
+                (name, _, _) => name == "SFECore" ? NativeLibrary.Load(Path.Combine(AppContext.BaseDirectory, LibraryFileName)) : IntPtr.Zero);
+    }
+    internal static string LibraryFileName => OperatingSystem.IsWindows() ? "SFECore.dll"
+        : OperatingSystem.IsMacOS() ? "libSFECore.dylib"
+        : OperatingSystem.IsLinux() || OperatingSystem.IsAndroid() ? "libSFECore.so"
+        : throw new PlatformNotSupportedException("Core supports Windows, Linux, macOS and Android");
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly Native.EventCallback callback;
     private IntPtr handle;
+    private readonly bool usesHostCallbacks;
     public bool LoggedIn { get; private set; }
     public bool HasSavedSession { get; private set; }
     public event Action<EngineEvent>? Event;
-    public NativeEngine(string cacheRoot, string? sessionFile = null, string? cipherTablePath = null)
+    public NativeEngine(string cacheRoot, string? sessionFile = null, string? cipherTablePath = null, string? caBundlePath = null)
     {
+        sessionFile = Path.GetFullPath(sessionFile ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SFExporter", "session.dat"));
+        usesHostCallbacks = Native.UsesHostCallbacks() != 0;
+        if (usesHostCallbacks)
+        {
+#if ANDROID
+            if (!ManagedHost.IsInstalled) throw new InvalidOperationException("Android platform services must be initialized before creating the core");
+#else
+            ManagedHost.EnsureDesktop(Path.GetDirectoryName(sessionFile)!);
+#endif
+        }
         callback = (ptr, _) =>
         {
             try
@@ -28,8 +47,9 @@ public sealed class NativeEngine : IDisposable
         var config = JsonSerializer.Serialize(new
         {
             cacheRoot,
-            sessionFile = sessionFile ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SFExporter", "session.dat"),
-            cipherTablePath = cipherTablePath ?? Path.Combine(AppContext.BaseDirectory, "resource", "cipher-table.json")
+            sessionFile,
+            cipherTablePath = cipherTablePath ?? Path.Combine(AppContext.BaseDirectory, "resource", "cipher-table.json"),
+            caBundlePath = caBundlePath ?? Path.Combine(AppContext.BaseDirectory, "resource", "cacert.pem")
         });
         handle = Native.Create(config, callback, IntPtr.Zero);
         if (handle == IntPtr.Zero) throw new InvalidOperationException(Marshal.PtrToStringUTF8(Native.InitError()));
@@ -75,6 +95,7 @@ public sealed class NativeEngine : IDisposable
     }
     private static class Native
     {
+        [DllImport("SFECore", EntryPoint="sf_uses_host_callbacks", CallingConvention=CallingConvention.Cdecl)] internal static extern int UsesHostCallbacks();
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void EventCallback(IntPtr text, IntPtr user);
         [DllImport("SFECore", EntryPoint="sf_create", CallingConvention=CallingConvention.Cdecl)] internal static extern IntPtr Create([MarshalAs(UnmanagedType.LPUTF8Str)] string config, EventCallback callback, IntPtr user);
         [DllImport("SFECore", EntryPoint="sf_init_error", CallingConvention=CallingConvention.Cdecl)] internal static extern IntPtr InitError();

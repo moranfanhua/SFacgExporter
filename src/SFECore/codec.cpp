@@ -36,7 +36,7 @@ Codec::Codec(const fs::path &table_path) {
     try {
         table = Json::parse(read_file(table_path, 256 * 1024));
     } catch (const std::exception &e) {
-        throw Error("无法加载字符表：" + narrow(table_path.wstring()) + "；" + e.what());
+        throw Error("无法加载字符表：" + path_utf8(table_path) + "；" + e.what());
     }
     if (!std::holds_alternative<Json::object>(table.value) || table.fields().size() != 3751)
         throw Error("字符表格式无效：需要完整的 3751 项 JSON 字符映射");
