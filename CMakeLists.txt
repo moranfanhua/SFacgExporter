@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 4.2)
 project(SFExporter VERSION 0.10.1 LANGUAGES CXX)
 
+if(CMAKE_TOOLCHAIN_FILE STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}/cmake/vcpkg-toolchain.cmake"
+   AND NOT SFE_VCPKG_TOOLCHAIN_LOADED)
+  message(FATAL_ERROR
+    "This build directory still uses a configuration without vcpkg. "
+    "Run cmake --fresh --preset <preset-name> once to reload the toolchain.")
+endif()
+
 if(NOT WIN32 AND NOT ANDROID AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   message(FATAL_ERROR "Supported targets: Windows, Linux, macOS and Android")
 endif()

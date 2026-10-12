@@ -58,7 +58,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: microsoft/vcpkg
-          ref: master
+          ref: e03dc9b29710050cd1018bc5674688108658d327
           path: build-tools/vcpkg
           persist-credentials: false
       - name: Initialize vcpkg
@@ -105,7 +105,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: microsoft/vcpkg
-          ref: master
+          ref: e03dc9b29710050cd1018bc5674688108658d327
           path: build-tools/vcpkg
           persist-credentials: false
       - name: Install Android build tools

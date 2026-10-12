@@ -98,7 +98,7 @@ void Transport::pause() {
     int delay = random_delay();
     for (int elapsed = 0; elapsed < delay; elapsed += 10) {
         check();
-        std::this_thread::sleep_for(std::chrono::milliseconds(std::min(10, delay - elapsed)));
+        std::this_thread::sleep_for(std::chrono::milliseconds((std::min)(10, delay - elapsed)));
     }
     check();
 }
