@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing version tag, for example v0.10.1"
+        description: "Existing version tag, for example v1.0.0"
         required: true
         type: string
 
@@ -31,6 +31,7 @@ jobs:
       version: ${{ steps.meta.outputs.version }}
       commit: ${{ steps.meta.outputs.commit }}
       prerelease: ${{ steps.meta.outputs.prerelease }}
+      android_version_code: ${{ steps.meta.outputs.android_version_code }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -47,6 +48,8 @@ jobs:
     needs: prepare
     runs-on: windows-2025-vs2026
     timeout-minutes: 30
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -69,15 +72,13 @@ jobs:
       - name: Build Windows release
         shell: pwsh
         run: |
-          cmake --preset windows-x64
+          cmake --preset windows-x64 "-DSFE_RELEASE_VERSION=$env:RELEASE_VERSION"
           if ($LASTEXITCODE -ne 0) { throw 'CMake configure failed' }
           cmake --build --preset windows-x64-Release --target SFECore
           if ($LASTEXITCODE -ne 0) { throw 'Native build failed' }
-          dotnet publish src/SFEAvalonia/SFEAvalonia.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o artifacts/win-x64
+          dotnet publish src/SFEAvalonia/SFEAvalonia.csproj -c Release -r win-x64 --self-contained true "-p:Version=$env:RELEASE_VERSION" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o artifacts/win-x64
           if ($LASTEXITCODE -ne 0) { throw 'Desktop publish failed' }
       - name: Package Windows release
-        env:
-          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
         run: python .github/scripts/package_release.py windows
       - uses: actions/upload-artifact@v7
         with:
@@ -90,6 +91,9 @@ jobs:
     needs: prepare
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      ANDROID_VERSION_CODE: ${{ needs.prepare.outputs.android_version_code }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -121,8 +125,6 @@ jobs:
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
         run: python .github/scripts/build_android.py
       - name: Package Android release
-        env:
-          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
         run: python .github/scripts/package_release.py android
       - uses: actions/upload-artifact@v7
         with:

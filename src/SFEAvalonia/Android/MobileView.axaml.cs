@@ -21,6 +21,7 @@ public sealed partial class MobileView : UserControl
     internal MobileView(NativeEngine engine, string root, bool restoreSession = true)
     {
         InitializeComponent();
+        LoginState.Text = $"未登录 · v{AppVersion.Current}";
         this.engine = engine;
         this.root = root;
         BookIdInput.Text = "";
@@ -71,7 +72,7 @@ public sealed partial class MobileView : UserControl
         catch (Exception e) { StatusText.Text = e.Message; Write(e.Message); }
         finally
         {
-            LoginState.Text = (engine.LoggedIn ? "App 已登录" : "未登录") + " · v0.10.1";
+            LoginState.Text = $"{(engine.LoggedIn ? "App 已登录" : "未登录")} · v{AppVersion.Current}";
             busy = exporting = false; operation.Dispose(); operation = null;
             LoginControls.IsEnabled = BookControls.IsEnabled = ExportControls.IsEnabled = true;
             StopButton.IsEnabled = false;

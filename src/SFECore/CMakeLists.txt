@@ -16,6 +16,7 @@ add_library(SFECore SHARED
 )
 target_include_directories(SFECore PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_compile_features(SFECore PRIVATE cxx_std_20)
+target_compile_definitions(SFECore PRIVATE SFE_VERSION="${SFE_RELEASE_VERSION}")
 find_package(Threads REQUIRED)
 target_link_libraries(SFECore PRIVATE Threads::Threads)
 find_package(CURL CONFIG REQUIRED)

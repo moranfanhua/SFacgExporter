@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 4.2)
-project(SFExporter VERSION 0.10.1 LANGUAGES CXX)
+set(SFE_RELEASE_VERSION "1.0.0" CACHE STRING "Product version, supplied by the release tag in CI")
+if(NOT SFE_RELEASE_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$")
+  message(FATAL_ERROR "SFE_RELEASE_VERSION must be a version such as 1.0.0 or 1.0.0-beta.1")
+endif()
+string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" SFE_NUMERIC_VERSION "${SFE_RELEASE_VERSION}")
+project(SFExporter VERSION ${SFE_NUMERIC_VERSION} LANGUAGES CXX)
 
 if(CMAKE_TOOLCHAIN_FILE STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}/cmake/vcpkg-toolchain.cmake"
    AND NOT SFE_VCPKG_TOOLCHAIN_LOADED)

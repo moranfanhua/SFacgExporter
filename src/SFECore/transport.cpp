@@ -141,7 +141,7 @@ Response Transport::send(std::string url, const std::string &method,
         option(CURLOPT_TIMEOUT_MS, 25000L);
         option(CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         option(CURLOPT_ACCEPT_ENCODING, "gzip,deflate");
-        option(CURLOPT_USERAGENT, "SFExporter/0.10.1");
+        option(CURLOPT_USERAGENT, "SFExporter/" SFE_VERSION);
         option(CURLOPT_HTTPHEADER, raw_headers);
         option(CURLOPT_SSL_VERIFYPEER, 1L);
         option(CURLOPT_SSL_VERIFYHOST, 2L);

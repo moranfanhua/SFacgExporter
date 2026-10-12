@@ -3,7 +3,7 @@
   <ScrollViewer>
     <StackPanel Margin="16,24" Spacing="14">
       <TextBlock Text="菠萝包小说导出" FontSize="24" FontWeight="SemiBold" />
-      <TextBlock x:Name="LoginState" Text="未登录 · v0.10.1" Foreground="#727887" />
+      <TextBlock x:Name="LoginState" Text="未登录" Foreground="#727887" />
       <Border Background="White" CornerRadius="12" Padding="16">
         <StackPanel x:Name="LoginControls" Spacing="10">
           <TextBox x:Name="AccountInput" Watermark="手机号 / 账号" />

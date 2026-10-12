@@ -15,6 +15,8 @@ def run(*args, env=None, input=None):
 
 
 def main():
+    version = os.environ["RELEASE_VERSION"]
+    version_code = os.environ["ANDROID_VERSION_CODE"]
     required = ["ANDROID_KEYSTORE_BASE64", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD", "ANDROID_STORE_PASSWORD"]
     missing = [name for name in required if not os.environ.get(name)]
     if missing:
@@ -27,7 +29,7 @@ def main():
     run(manager, f"--sdk_root={sdk}", "platforms;android-36", "build-tools;36.0.0", f"ndk;{NDK_VERSION}", input="y\n" * 1000)
     env = dict(os.environ)
     env["ANDROID_NDK_HOME"] = str(sdk / "ndk" / NDK_VERSION)
-    run("cmake", "--preset", "android-arm64", env=env)
+    run("cmake", "--preset", "android-arm64", f"-DSFE_RELEASE_VERSION={version}", env=env)
     run("cmake", "--build", "--preset", "android-arm64-Release", env=env)
     # Keep signing material outside artifacts. Passwords are read by MSBuild from environment variables.
     with tempfile.TemporaryDirectory(prefix="sfexporter-signing-") as temp:
@@ -35,6 +37,7 @@ def main():
         key.write_bytes(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"], validate=True))
         key.chmod(0o600)
         run("dotnet", "publish", "src/SFEAvalonia/SFEAvalonia.csproj", "-p:SFEPlatform=Android", "-c", "Release", "-o", "artifacts/android",
+            f"-p:Version={version}", f"-p:ApplicationVersion={version_code}",
             f"-p:AndroidSdkDirectory={sdk}", f"-p:JavaSdkDirectory={os.environ['JAVA_HOME']}",
             "-p:AndroidKeyStore=true", f"-p:AndroidSigningKeyStore={key}",
             f"-p:AndroidSigningKeyAlias={os.environ['ANDROID_KEY_ALIAS']}",

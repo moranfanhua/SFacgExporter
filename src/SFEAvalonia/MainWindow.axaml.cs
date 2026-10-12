@@ -22,6 +22,7 @@ public sealed partial class MainWindow : Window
     internal MainWindow(NativeEngine? supplied, bool restoreSession = true)
     {
         InitializeComponent();
+        Title = $"菠萝包小说导出 v{AppVersion.Current}";
         BookIdInput.Text = "";
         FolderInput.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "菠萝包导出");
         engine = supplied ?? new NativeEngine(FolderInput.Text);
@@ -70,7 +71,7 @@ public sealed partial class MainWindow : Window
         finally
         {
             LoginState.Text = engine.LoggedIn ? "App 已登录" : "未登录";
-            Title = "菠萝包小说导出 v0.10.1 · " + LoginState.Text;
+            Title = $"菠萝包小说导出 v{AppVersion.Current} · {LoginState.Text}";
             busy = false; operation.Dispose(); operation = null;
             CatalogButton.IsEnabled = LoginButton.IsEnabled = LogoutButton.IsEnabled = CookieButton.IsEnabled = ExportButton.IsEnabled = Volumes.IsEnabled = BookIdInput.IsEnabled = FolderInput.IsEnabled = true;
             StopButton.IsEnabled = false;

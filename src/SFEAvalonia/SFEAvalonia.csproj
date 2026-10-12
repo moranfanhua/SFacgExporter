@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Platforms>AnyCPU;x64</Platforms>
     <AssemblyName>菠萝包小说导出</AssemblyName>
-    <Version>0.10.1</Version>
+    <Version>1.0.0</Version>
     <ApplicationManifest Condition="'$(SFEPlatform)' != 'Android' And $([MSBuild]::IsOSPlatform('Windows'))">app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <SFECoreLibraryName>SFECore.dll</SFECoreLibraryName>
@@ -24,7 +24,7 @@
     <TargetFramework>net10.0-android</TargetFramework>
     <ApplicationId>com.moranfanhua.sfexporter</ApplicationId>
     <ApplicationTitle>菠萝包小说导出</ApplicationTitle>
-    <ApplicationVersion>1001</ApplicationVersion>
+    <ApplicationVersion>1000000</ApplicationVersion>
     <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
     <AndroidManifest>Android/Properties/AndroidManifest.xml</AndroidManifest>
     <SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
