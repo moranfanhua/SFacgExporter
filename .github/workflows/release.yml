@@ -124,6 +124,18 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
         run: python .github/scripts/build_android.py
+      - name: Upload Android native build logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-native-build-logs-${{ github.run_attempt }}
+          path: |
+            build-tools/vcpkg/buildtrees/openssl/*.log
+            build-tools/vcpkg/buildtrees/detect_compiler/*.log
+            build/android-arm64/vcpkg-manifest-install.log
+            build/vcpkg_installed/vcpkg/issue_body.md
+          if-no-files-found: warn
+          retention-days: 7
       - name: Package Android release
         run: python .github/scripts/package_release.py android
       - uses: actions/upload-artifact@v7

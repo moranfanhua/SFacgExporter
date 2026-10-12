@@ -14,6 +14,21 @@ def run(*args, env=None, input=None):
     subprocess.run(args, cwd=ROOT, env=env, input=input, text=True, check=True)
 
 
+def print_native_build_logs():
+    logs = sorted((ROOT / "build-tools/vcpkg/buildtrees/openssl").glob("*.log"))
+    logs.append(ROOT / "build/android-arm64/vcpkg-manifest-install.log")
+    for log in logs:
+        if not log.is_file():
+            continue
+        try:
+            lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        print(f"::group::{log.relative_to(ROOT).as_posix()} (last 100 lines)", flush=True)
+        print("\n".join(lines[-100:]), flush=True)
+        print("::endgroup::", flush=True)
+
+
 def main():
     version = os.environ["RELEASE_VERSION"]
     version_code = os.environ["ANDROID_VERSION_CODE"]
@@ -29,8 +44,12 @@ def main():
     run(manager, f"--sdk_root={sdk}", "platforms;android-36", "build-tools;36.0.0", f"ndk;{NDK_VERSION}", input="y\n" * 1000)
     env = dict(os.environ)
     env["ANDROID_NDK_HOME"] = str(sdk / "ndk" / NDK_VERSION)
-    run("cmake", "--preset", "android-arm64", f"-DSFE_RELEASE_VERSION={version}", env=env)
-    run("cmake", "--build", "--preset", "android-arm64-Release", env=env)
+    try:
+        run("cmake", "--preset", "android-arm64", f"-DSFE_RELEASE_VERSION={version}", env=env)
+        run("cmake", "--build", "--preset", "android-arm64-Release", env=env)
+    except subprocess.CalledProcessError:
+        print_native_build_logs()
+        raise
     # Keep signing material outside artifacts. Passwords are read by MSBuild from environment variables.
     with tempfile.TemporaryDirectory(prefix="sfexporter-signing-") as temp:
         key = Path(temp) / "release.keystore"
