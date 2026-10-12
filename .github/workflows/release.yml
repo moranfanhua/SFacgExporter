@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing version tag, for example v0.10.1"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  AVALONIA_TELEMETRY_OPTOUT: "1"
+  VCPKG_ROOT: ${{ github.workspace }}/build-tools/vcpkg
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+      commit: ${{ steps.meta.outputs.commit }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve release version
+        id: meta
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: python .github/scripts/release_meta.py
+
+  windows:
+    needs: prepare
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/checkout@v7
+        with:
+          repository: microsoft/vcpkg
+          ref: master
+          path: build-tools/vcpkg
+          persist-credentials: false
+      - name: Initialize vcpkg
+        shell: pwsh
+        run: |
+          & ./build-tools/vcpkg/bootstrap-vcpkg.bat -disableMetrics
+          if ($LASTEXITCODE -ne 0) { throw 'vcpkg bootstrap failed' }
+      - name: Build Windows release
+        shell: pwsh
+        run: |
+          cmake --preset windows-x64
+          if ($LASTEXITCODE -ne 0) { throw 'CMake configure failed' }
+          cmake --build --preset windows-x64-Release --target SFECore
+          if ($LASTEXITCODE -ne 0) { throw 'Native build failed' }
+          dotnet publish src/SFEAvalonia/SFEAvalonia.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o artifacts/win-x64
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop publish failed' }
+      - name: Package Windows release
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: python .github/scripts/package_release.py windows
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-windows
+          path: artifacts/release/*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  android:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/checkout@v7
+        with:
+          repository: microsoft/vcpkg
+          ref: master
+          path: build-tools/vcpkg
+          persist-credentials: false
+      - name: Install Android build tools
+        run: |
+          python -m pip install 'cmake>=4.2,<5' ninja
+          ./build-tools/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          dotnet workload install android --skip-manifest-update
+      - name: Build signed Android release
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: python .github/scripts/build_android.py
+      - name: Package Android release
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: python .github/scripts/package_release.py android
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-android
+          path: artifacts/release/*.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [prepare, windows, android]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          path: artifacts/release
+          merge-multiple: true
+      - name: Package source and checksums
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: python .github/scripts/package_release.py source
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+        run: python .github/scripts/publish_release.py

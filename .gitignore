@@ -10,4 +10,4 @@ artifacts/
 logs/
 .sfcore-cache/
 test-artifacts/
-scripts/
+/scripts/
