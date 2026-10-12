@@ -31,6 +31,7 @@
     <RuntimeIdentifier>android-arm64</RuntimeIdentifier>
     <AndroidPackageFormats>apk</AndroidPackageFormats>
     <PublishTrimmed>false</PublishTrimmed>
+    <RunAOTCompilation>false</RunAOTCompilation>
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <SFECoreLibraryName>libSFECore.so</SFECoreLibraryName>
     <SFECoreBinaryPath Condition="'$(SFECoreBinaryPath)' == ''">$(MSBuildThisFileDirectory)../../build/android-arm64/bin/libSFECore.so</SFECoreBinaryPath>
