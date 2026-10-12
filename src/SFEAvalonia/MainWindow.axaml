@@ -1,0 +1,71 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:SFExporter.Desktop" x:Class="SFExporter.Desktop.MainWindow"
+        Width="1050" Height="900" MinWidth="900" MinHeight="760" Background="#F5F6FA"
+        Title="菠萝包小说导出 v0.9.4" WindowStartupLocation="CenterScreen">
+  <Grid Margin="24" RowDefinitions="Auto,16,Auto,16,*,16,Auto,12,Auto,12,150">
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel><TextBlock Text="菠萝包小说导出" FontSize="26" FontWeight="SemiBold" />
+        <TextBlock Text="免费或已购小说 · TXT / EPUB" Foreground="#727887" Margin="0,6,0,0" /></StackPanel>
+      <Border Grid.Column="1" Background="#FFF0E7" CornerRadius="8" Padding="14,10" VerticalAlignment="Center">
+        <TextBlock x:Name="LoginState" Text="未登录" Foreground="#BB591E" />
+      </Border>
+    </Grid>
+    <Border Grid.Row="2" Background="White" CornerRadius="12" Padding="18">
+      <StackPanel Spacing="12">
+        <Grid ColumnDefinitions="78,*,12,Auto">
+          <TextBlock Text="小说 ID" VerticalAlignment="Center" />
+          <TextBox Grid.Column="1" x:Name="BookIdInput" Watermark="输入数字小说 ID" />
+          <Button Grid.Column="3" x:Name="CatalogButton" Content="读取目录" Click="ReadCatalog" />
+        </Grid>
+        <Grid ColumnDefinitions="78,*,12,*,12,Auto,8,Auto,8,Auto">
+          <TextBlock Text="App 登录" VerticalAlignment="Center" />
+          <TextBox Grid.Column="1" x:Name="AccountInput" Watermark="手机号 / 账号" />
+          <TextBox Grid.Column="3" x:Name="PasswordInput" Watermark="密码" PasswordChar="●" />
+          <Button Grid.Column="5" x:Name="LoginButton" Content="登录" Click="Login" />
+          <Button Grid.Column="7" x:Name="CookieButton" Content="使用会话" Click="UseCookie" />
+          <Button Grid.Column="9" x:Name="LogoutButton" Content="退出" Click="Logout" />
+        </Grid>
+      </StackPanel>
+    </Border>
+    <Border Grid.Row="4" Background="White" CornerRadius="12" Padding="18">
+      <Grid RowDefinitions="Auto,12,*">
+        <Grid ColumnDefinitions="*,Auto,8,Auto">
+          <TextBlock x:Name="BookDescription" Text="读取目录后选择要导出的卷" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="全选" Click="SelectAll" />
+          <Button Grid.Column="3" Content="清空选择" Click="SelectNone" />
+        </Grid>
+        <ScrollViewer Grid.Row="2"><ItemsControl x:Name="Volumes">
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:VolumeItem">
+            <Border BorderBrush="#EDF0F5" BorderThickness="0,0,0,1" Padding="0,10">
+              <Grid ColumnDefinitions="*,Auto">
+                <CheckBox Content="{Binding Name}" IsChecked="{Binding Selected, Mode=TwoWay}" />
+                <TextBlock Grid.Column="1" Text="{Binding Description}" Foreground="#727887" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+          </DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl></ScrollViewer>
+      </Grid>
+    </Border>
+    <Border Grid.Row="6" Background="White" CornerRadius="12" Padding="18">
+      <StackPanel Spacing="12">
+        <StackPanel Orientation="Horizontal" Spacing="20"><TextBlock Text="导出格式" VerticalAlignment="Center" />
+          <CheckBox x:Name="TxtFormat" Content="TXT" IsChecked="True" /><CheckBox x:Name="EpubFormat" Content="EPUB（含插图）" IsChecked="True" /></StackPanel>
+        <Grid ColumnDefinitions="78,*,12,Auto"><TextBlock Text="保存位置" VerticalAlignment="Center" />
+          <TextBox Grid.Column="1" x:Name="FolderInput" /><Button Grid.Column="3" Content="选择目录" Click="ChooseFolder" /></Grid>
+      </StackPanel>
+    </Border>
+    <Grid Grid.Row="8" RowDefinitions="Auto,8,Auto">
+      <Grid ColumnDefinitions="*,Auto,8,Auto,8,Auto,8,Auto">
+        <TextBlock x:Name="StatusText" Text="准备就绪" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <Button Grid.Column="1" Content="打开目录" Click="OpenFolder" />
+        <Button Grid.Column="3" Content="打开日志" Click="OpenLog" />
+        <Button Grid.Column="5" x:Name="StopButton" Content="停止" IsEnabled="False" Click="Stop" />
+        <Button Grid.Column="7" x:Name="ExportButton" Classes="primary" Content="导出所选卷" Click="Export" />
+      </Grid>
+      <ProgressBar Grid.Row="2" x:Name="Progress" Minimum="0" Maximum="1" Value="0" Height="5" />
+    </Grid>
+    <Border Grid.Row="10" Background="White" CornerRadius="12" Padding="12">
+      <TextBox x:Name="LogOutput" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" BorderThickness="0" />
+    </Border>
+  </Grid>
+</Window>

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>AnyCPU;x64</Platforms>
+    <AssemblyName>菠萝包小说导出</AssemblyName>
+    <Version>0.9.4</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <SFECoreBinaryPath Condition="'$(SFECoreBinaryPath)' == '' and Exists('$(SolutionDir)CMakeCache.txt')">$(SolutionDir)bin/SFECore.dll</SFECoreBinaryPath>
+    <SFECoreBinaryPath Condition="'$(SFECoreBinaryPath)' == ''">$(MSBuildThisFileDirectory)../../build/bin/SFECore.dll</SFECoreBinaryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)' == 'x64'">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.14" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.14" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.14" />
+    <Content Include="$(SFECoreBinaryPath)" Link="SFECore.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
+    <Content Include="../../resource/cipher-table.json" Link="resource/cipher-table.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildRuntimeType)' == 'Full' and Exists('$(MSBuildThisFileDirectory)../../build/src/SFECore/SFECore.vcxproj')">
+    <ProjectReference Include="../../build/src/SFECore/SFECore.vcxproj">
+      <SetPlatform>Platform=x64</SetPlatform>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

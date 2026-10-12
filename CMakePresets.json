@@ -1,0 +1,34 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 4, "minor": 2, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "windows-x64",
+      "displayName": "Windows x64 (Visual Studio 2026)",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-x64-Release",
+      "configurePreset": "windows-x64",
+      "configuration": "Release",
+      "jobs": 1,
+      "nativeToolOptions": ["/nr:false"]
+    },
+    {
+      "name": "windows-x64-Debug",
+      "configurePreset": "windows-x64",
+      "configuration": "Debug",
+      "jobs": 1,
+      "nativeToolOptions": ["/nr:false"]
+    }
+  ]
+}
