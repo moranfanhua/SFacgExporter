@@ -1,5 +1,6 @@
 """Build the native core and sign an Android APK with a persistent repository key."""
 import base64
+import binascii
 import os
 from pathlib import Path
 import shutil
@@ -36,6 +37,17 @@ def main():
     missing = [name for name in required if not os.environ.get(name)]
     if missing:
         raise SystemExit("Configure repository signing secrets: " + ", ".join(missing))
+    # Clipboard copies may contain whitespace. Check the secret before installing or building dependencies.
+    encoded_key = "".join(os.environ["ANDROID_KEYSTORE_BASE64"].split())
+    try:
+        key_data = base64.b64decode(encoded_key, validate=True)
+    except (binascii.Error, ValueError):
+        raise SystemExit(
+            "ANDROID_KEYSTORE_BASE64 is invalid. Re-encode release.keystore and paste only "
+            "one complete Base64 string into the repository secret."
+        ) from None
+    if not key_data:
+        raise SystemExit("ANDROID_KEYSTORE_BASE64 decodes to an empty file; re-encode release.keystore")
     sdk = Path(os.environ.get("ANDROID_HOME") or os.environ["ANDROID_SDK_ROOT"])
     manager = shutil.which("sdkmanager")
     if manager is None:
@@ -53,7 +65,7 @@ def main():
     # Keep signing material outside artifacts. Passwords are read by MSBuild from environment variables.
     with tempfile.TemporaryDirectory(prefix="sfexporter-signing-") as temp:
         key = Path(temp) / "release.keystore"
-        key.write_bytes(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"], validate=True))
+        key.write_bytes(key_data)
         key.chmod(0o600)
         run("dotnet", "publish", "src/SFEAvalonia/SFEAvalonia.csproj", "-p:SFEPlatform=Android", "-c", "Release", "-o", "artifacts/android",
             f"-p:Version={version}", f"-p:ApplicationVersion={version_code}",
